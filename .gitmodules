@@ -1,0 +1,3 @@
+[submodule "lib/xERC20"]
+	path = lib/xERC20
+	url = https://github.com/defi-wonderland/xERC20

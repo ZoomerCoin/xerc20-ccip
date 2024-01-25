@@ -13,7 +13,7 @@ solc_version = '0.8.23'
 src = 'solidity'
 test = 'solidity/test'
 out = 'out'
-libs = ['node_modules']
+libs = ["node_modules", "lib"]
 optimizer_runs = 10_000
 
 [profile.optimized]
@@ -33,3 +33,5 @@ runs = 1000
 
 [rpc_endpoints]
 mainnet = "${MAINNET_RPC}"
+sepolia = "${SEPOLIA_RPC}"
+arb_sepolia = "${ARB_SEPOLIA_RPC}"
