@@ -17,6 +17,8 @@ contract TestLINK is ERC20 {
 
 abstract contract Deploy is Script {
   mapping(uint32 => address) public routers;
+  mapping(uint32 => uint256) public forks;
+  mapping(uint32 => CCIPxERC20Bridge) public bridges;
 
   constructor() {
     routers[11_155_111] = 0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59; // sepolia
@@ -24,12 +26,12 @@ abstract contract Deploy is Script {
   }
 
   function _deployTestnet() internal {
-    vm.createSelectFork(vm.rpcUrl('sepolia'));
+    forks[11_155_111] = vm.createSelectFork(vm.rpcUrl('sepolia'));
     vm.startBroadcast();
     _deploy(11_155_111, true);
     vm.stopBroadcast();
 
-    vm.createSelectFork(vm.rpcUrl('arb-sepolia'));
+    forks[421_614] = vm.createSelectFork(vm.rpcUrl('arb_sepolia'));
     vm.startBroadcast();
     _deploy(421_614, true);
     vm.stopBroadcast();
@@ -44,7 +46,16 @@ abstract contract Deploy is Script {
       link = new TestLINK();
     }
     CCIPxERC20Bridge bridge = new CCIPxERC20Bridge(routers[_chainId], address(link), xerc20);
+    bridges[_chainId] = bridge;
     XERC20(xerc20).setLimits(address(bridge), 1_000_000_000, 1_000_000_000);
+  }
+
+  function _configureBridge(uint32[] calldata _chainIds) internal {
+    CCIPxERC20Bridge bridge = CCIPxERC20Bridge(bridges[_chainIds[block.chainid]]);
+    require(address(bridge) != address(0), 'bridge not deployed');
+    for (uint256 i = 0; i < _chainIds.length; i++) {
+      bridge.addBridgeForChain(bridge.chainIdToChainSelector(_chainIds[i]), address(bridges[_chainIds[i]]));
+    }
   }
 }
 

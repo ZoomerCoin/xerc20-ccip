@@ -51,13 +51,12 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   string private _lastReceivedText; // Store the last received text.
 
   // Mapping to keep track of allowlisted senders by source chain.
-  mapping(uint64 => mapping(address => bool)) public allowlistedSendersBySourceChain;
-
-  // Mapping to set receivers by destination chain.
-  mapping(uint64 => address) public receiversByDestinationChain;
+  mapping(uint64 => address) public bridgesByChain;
 
   IERC20 private _linkToken;
   IXERC20 public xerc20;
+
+  mapping(uint32 => uint64) public chainIdToChainSelector;
 
   /// @notice Constructor initializes the contract with the router address.
   /// @param _router The address of the router contract.
@@ -65,39 +64,53 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   constructor(address _router, address _link, address _xerc20) CCIPReceiver(_router) {
     _linkToken = IERC20(_link);
     xerc20 = IXERC20(_xerc20);
+
+    // testnets
+    chainIdToChainSelector[11_155_111] = 16_015_286_601_757_825_753;
+    chainIdToChainSelector[421_614] = 3_478_487_238_524_512_106;
+    chainIdToChainSelector[80_001] = 12_532_609_583_862_916_517;
+
+    // mainnets
+    chainIdToChainSelector[1] = 5_009_297_550_715_157_269;
+    chainIdToChainSelector[10] = 3_734_403_246_176_062_136;
+    chainIdToChainSelector[56] = 11_344_663_589_394_136_015;
+    chainIdToChainSelector[137] = 4_051_577_828_743_386_545;
+    chainIdToChainSelector[8453] = 15_971_525_489_660_198_786;
+    chainIdToChainSelector[43_114] = 6_433_500_567_565_415_381;
+    chainIdToChainSelector[42_161] = 4_949_039_107_694_359_620;
   }
 
   /// @dev Modifier to make a function callable only when the sender is allowlisted by the contract owner.
   modifier onlyAllowlistedSenderBySourceChain(uint64 _sourceChainSelector, address _sender) {
-    if (!allowlistedSendersBySourceChain[_sourceChainSelector][_sender]) {
+    if (bridgesByChain[_sourceChainSelector] != _sender) {
       revert SenderNotAllowlistedBySourceChain(_sourceChainSelector, _sender);
     }
     _;
   }
 
   modifier validReceiver(uint64 _destinationChainSelector) {
-    if (receiversByDestinationChain[_destinationChainSelector] == address(0)) {
+    if (bridgesByChain[_destinationChainSelector] == address(0)) {
       revert NoReceiverForDestinationChain(_destinationChainSelector);
     }
     _;
   }
 
-  /// @dev Updates the allowlist status of a sender for transactions by source chain.
-  function allowlistSenderForSourceChain(uint64 _sourceChainSelector, address _sender, bool allowed) external onlyOwner {
-    allowlistedSendersBySourceChain[_sourceChainSelector][_sender] = allowed;
+  function addBridgeForChain(uint64 _chainSelector, address _bridge) external onlyOwner {
+    bridgesByChain[_chainSelector] = _bridge;
   }
 
-  function addReceiverForDestinationChain(uint64 _destinationChainSelector, address _receiver) external onlyOwner {
-    receiversByDestinationChain[_destinationChainSelector] = _receiver;
+  function addChainIdToChainSelector(uint32 _chainId, uint64 _chainSelector) external onlyOwner {
+    chainIdToChainSelector[_chainId] = _chainSelector;
   }
 
   function _bridgeTokens(
-    uint64 _destinationChainSelector,
+    uint32 _destinationChainId,
     address _receipient,
     uint256 _amount,
     bool _feeInLINK
-  ) internal onlyOwner validReceiver(_destinationChainSelector) returns (bytes32 messageId) {
-    address _receiver = receiversByDestinationChain[_destinationChainSelector];
+  ) internal onlyOwner validReceiver(chainIdToChainSelector[_destinationChainId]) returns (bytes32 messageId) {
+    uint64 _destinationChainSelector = chainIdToChainSelector[_destinationChainId];
+    address _receiver = bridgesByChain[_destinationChainSelector];
     // Burn the tokens from the sender
     xerc20.burn(msg.sender, _amount);
 
