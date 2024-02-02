@@ -35,3 +35,7 @@ runs = 1000
 mainnet = "${MAINNET_RPC}"
 sepolia = "${SEPOLIA_RPC}"
 arb_sepolia = "${ARB_SEPOLIA_RPC}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY_MAINNET}" }
+arbitrum = { key = "${ETHERSCAN_API_KEY_ARB}" }

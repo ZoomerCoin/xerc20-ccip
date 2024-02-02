@@ -53,7 +53,7 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   // Mapping to keep track of allowlisted senders by source chain.
   mapping(uint64 => address) public bridgesByChain;
 
-  IERC20 private _linkToken;
+  IERC20 public linkToken;
   IXERC20 public xerc20;
 
   mapping(uint32 => uint64) public chainIdToChainSelector;
@@ -62,7 +62,7 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   /// @param _router The address of the router contract.
   /// @param _link The address of the link contract.
   constructor(address _router, address _link, address _xerc20) CCIPReceiver(_router) {
-    _linkToken = IERC20(_link);
+    linkToken = IERC20(_link);
     xerc20 = IXERC20(_xerc20);
 
     // testnets
@@ -103,6 +103,30 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     chainIdToChainSelector[_chainId] = _chainSelector;
   }
 
+  function getFee(uint64 _destinationChainSelector, uint256 _amount, bool _feeInLINK) external view returns (uint256) {
+    address _receiver = bridgesByChain[_destinationChainSelector];
+    IRouterClient router = IRouterClient(this.getRouter());
+    Client.EVM2AnyMessage memory evm2AnyMessage =
+      _buildCCIPMessage(_receiver, _amount, msg.sender, _feeInLINK ? address(linkToken) : address(0));
+    return router.getFee(_destinationChainSelector, evm2AnyMessage);
+  }
+
+  function bridgeTokens(
+    uint32 _destinationChainId,
+    address _receipient,
+    uint256 _amount
+  ) external payable returns (bytes32 messageId) {
+    return _bridgeTokens(_destinationChainId, _receipient, _amount, false);
+  }
+
+  function bridgeTokensWithLINK(
+    uint32 _destinationChainId,
+    address _receipient,
+    uint256 _amount
+  ) external returns (bytes32 messageId) {
+    return _bridgeTokens(_destinationChainId, _receipient, _amount, true);
+  }
+
   function _bridgeTokens(
     uint32 _destinationChainId,
     address _receipient,
@@ -114,8 +138,10 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     // Burn the tokens from the sender
     xerc20.burn(msg.sender, _amount);
 
+    address _feeToken = _feeInLINK ? address(linkToken) : address(0);
+
     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-    Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _amount, _receipient, address(0));
+    Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _amount, _receipient, _feeToken);
 
     // Initialize a router client instance to interact with cross-chain router
     IRouterClient router = IRouterClient(this.getRouter());
@@ -124,8 +150,8 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
     if (_feeInLINK) {
-      _linkToken.transferFrom(msg.sender, address(this), fees);
-      _linkToken.approve(address(router), fees);
+      linkToken.transferFrom(msg.sender, address(this), fees);
+      linkToken.approve(address(router), fees);
     } else {
       if (msg.value < fees) {
         revert NotEnoughBalance(address(this).balance, fees);
@@ -139,7 +165,7 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     messageId = router.ccipSend{value: _feeInLINK ? 0 : fees}(_destinationChainSelector, evm2AnyMessage);
 
     // Emit an event with message details
-    emit MessageSent(messageId, _destinationChainSelector, _receiver, _receipient, _amount, address(0), fees);
+    emit MessageSent(messageId, _destinationChainSelector, _receiver, _receipient, _amount, _feeToken, fees);
 
     // Return the CCIP message ID
     return messageId;
