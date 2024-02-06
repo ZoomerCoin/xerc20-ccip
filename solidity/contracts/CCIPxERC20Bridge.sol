@@ -25,11 +25,6 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   error NoReceiverForDestinationChain(uint64 destinationChainSelector); // Used when the receiver has not been allowlisted by the contract owner.
 
   // Event emitted when a message is sent to another chain.
-  // The chain selector of the destination chain.
-  // The address of the receiver on the destination chain.
-  // The text being sent.
-  // the token address used to pay CCIP fees.
-  // The fees paid for sending the CCIP message.
   event MessageSent( // The unique ID of the CCIP message.
     bytes32 indexed messageId,
     uint64 indexed destinationChainSelector,
@@ -58,12 +53,15 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
 
   mapping(uint32 => uint64) public chainIdToChainSelector;
 
+  uint256 public feeBps; // fee in basis pts, i.e. 10 = 0.1%
+
   /// @notice Constructor initializes the contract with the router address.
   /// @param _router The address of the router contract.
   /// @param _link The address of the link contract.
-  constructor(address _router, address _link, address _xerc20) CCIPReceiver(_router) {
+  constructor(address _router, address _link, address _xerc20, uint256 _feeBps) CCIPReceiver(_router) {
     linkToken = IERC20(_link);
     xerc20 = IXERC20(_xerc20);
+    feeBps = _feeBps;
 
     // testnets
     chainIdToChainSelector[11_155_111] = 16_015_286_601_757_825_753;
@@ -103,7 +101,12 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     chainIdToChainSelector[_chainId] = _chainSelector;
   }
 
-  function getFee(uint64 _destinationChainSelector, uint256 _amount, bool _feeInLINK) external view returns (uint256) {
+  function setFeeBps(uint256 _feeBps) external onlyOwner {
+    feeBps = _feeBps;
+  }
+
+  function getFee(uint32 _destinationChainId, uint256 _amount, bool _feeInLINK) external view returns (uint256) {
+    uint64 _destinationChainSelector = chainIdToChainSelector[_destinationChainId];
     address _receiver = bridgesByChain[_destinationChainSelector];
     IRouterClient router = IRouterClient(this.getRouter());
     Client.EVM2AnyMessage memory evm2AnyMessage =
@@ -132,16 +135,21 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     address _receipient,
     uint256 _amount,
     bool _feeInLINK
-  ) internal onlyOwner validReceiver(chainIdToChainSelector[_destinationChainId]) returns (bytes32 messageId) {
+  ) internal validReceiver(chainIdToChainSelector[_destinationChainId]) returns (bytes32 messageId) {
     uint64 _destinationChainSelector = chainIdToChainSelector[_destinationChainId];
     address _receiver = bridgesByChain[_destinationChainSelector];
-    // Burn the tokens from the sender
-    xerc20.burn(msg.sender, _amount);
+
+    // transfer to this address
+    IERC20(address(xerc20)).transferFrom(msg.sender, address(this), _amount);
+
+    // Burn the tokens minus the fee
+    uint256 _bridgedAmount = _amount - ((_amount * feeBps) / 10_000);
+    xerc20.burn(address(this), _bridgedAmount);
 
     address _feeToken = _feeInLINK ? address(linkToken) : address(0);
 
     // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
-    Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _amount, _receipient, _feeToken);
+    Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(_receiver, _bridgedAmount, _receipient, _feeToken);
 
     // Initialize a router client instance to interact with cross-chain router
     IRouterClient router = IRouterClient(this.getRouter());
@@ -165,7 +173,7 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     messageId = router.ccipSend{value: _feeInLINK ? 0 : fees}(_destinationChainSelector, evm2AnyMessage);
 
     // Emit an event with message details
-    emit MessageSent(messageId, _destinationChainSelector, _receiver, _receipient, _amount, _feeToken, fees);
+    emit MessageSent(messageId, _destinationChainSelector, _receiver, _receipient, _bridgedAmount, _feeToken, fees);
 
     // Return the CCIP message ID
     return messageId;
