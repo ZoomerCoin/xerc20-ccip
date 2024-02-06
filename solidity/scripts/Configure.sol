@@ -12,6 +12,8 @@ abstract contract Configure is Script, Config {
 
   constructor() Config() {
     bridges[10] = CCIPxERC20Bridge(payable(0x0337c7b958aC69A9e35b1Be47D96b8e058f9222a)); // optimism
+    bridges[56] = CCIPxERC20Bridge(payable(0x840854c007c1E5F64074350beECa088F8a8e48BF)); // bsc
+    bridges[137] = CCIPxERC20Bridge(payable(0xB2e04651aC165CB6D2b8B0442ab25231DEf15b51)); // polygon
     bridges[8453] = CCIPxERC20Bridge(payable(0x083178fBB5d6dd6521fe778BcfC32BF898678fAe)); // base
     bridges[42_161] = CCIPxERC20Bridge(payable(0x0337c7b958aC69A9e35b1Be47D96b8e058f9222a)); // arbitrum
 
@@ -30,7 +32,9 @@ abstract contract Configure is Script, Config {
     XERC20(xerc20s[block.chainid]).setLimits(address(bridge), 1_000_000_000 ether, 1_000_000_000 ether);
     require(address(bridge) != address(0), 'bridge not deployed');
     for (uint256 i = 0; i < _otherChainIds.length; i++) {
-      if (bridge.bridgesByChain(bridge.chainIdToChainSelector(_otherChainIds[i])) == bridges[_otherChainIds[i]]) {
+      if (
+        bridge.bridgesByChain(bridge.chainIdToChainSelector(_otherChainIds[i])) == address(bridges[_otherChainIds[i]])
+      ) {
         continue;
       }
       bridge.addBridgeForChain(bridge.chainIdToChainSelector(_otherChainIds[i]), address(bridges[_otherChainIds[i]]));
@@ -56,27 +60,55 @@ contract ConfigureArbSepolia is Configure {
 
 contract ConfigureBase is Configure {
   function run() external {
-    uint32[] memory _otherChainIds = new uint32[](2);
+    uint32[] memory _otherChainIds = new uint32[](4);
     _otherChainIds[0] = 10;
     _otherChainIds[1] = 42_161;
+    _otherChainIds[2] = 137;
+    _otherChainIds[3] = 56;
     _configure(_otherChainIds);
   }
 }
 
 contract ConfigureArbitrum is Configure {
   function run() external {
-    uint32[] memory _otherChainIds = new uint32[](2);
+    uint32[] memory _otherChainIds = new uint32[](4);
     _otherChainIds[0] = 8453;
     _otherChainIds[1] = 10;
+    _otherChainIds[2] = 137;
+    _otherChainIds[3] = 56;
     _configure(_otherChainIds);
   }
 }
 
 contract ConfigureOptimism is Configure {
   function run() external {
-    uint32[] memory _otherChainIds = new uint32[](2);
+    uint32[] memory _otherChainIds = new uint32[](4);
     _otherChainIds[0] = 8453;
     _otherChainIds[1] = 42_161;
+    _otherChainIds[2] = 137;
+    _otherChainIds[3] = 56;
+    _configure(_otherChainIds);
+  }
+}
+
+contract ConfigureBsc is Configure {
+  function run() external {
+    uint32[] memory _otherChainIds = new uint32[](4);
+    _otherChainIds[0] = 8453;
+    _otherChainIds[1] = 137;
+    _otherChainIds[2] = 10;
+    _otherChainIds[3] = 42_161;
+    _configure(_otherChainIds);
+  }
+}
+
+contract ConfigurePolygon is Configure {
+  function run() external {
+    uint32[] memory _otherChainIds = new uint32[](4);
+    _otherChainIds[0] = 8453;
+    _otherChainIds[1] = 10;
+    _otherChainIds[2] = 42_161;
+    _otherChainIds[3] = 56;
     _configure(_otherChainIds);
   }
 }

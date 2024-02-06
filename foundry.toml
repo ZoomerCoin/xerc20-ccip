@@ -35,6 +35,8 @@ runs = 1000
 mainnet = "${MAINNET_RPC}"
 arbitrum = "${ARBITRUM_RPC}"
 optimism = "${OPTIMISM_RPC}"
+bsc = "${BSC_RPC}"
+polygon = "${POLYGON_RPC}"
 base = "${BASE_RPC}"
 sepolia = "${SEPOLIA_RPC}"
 arb_sepolia = "${ARB_SEPOLIA_RPC}"
@@ -44,3 +46,5 @@ mainnet = { key = "${ETHERSCAN_API_KEY_MAINNET}" }
 arbitrum = { key = "${ETHERSCAN_API_KEY_ARB}" }
 optimism = { key = "${ETHERSCAN_API_KEY_OPTIMISM}" }
 base = { key = "${ETHERSCAN_API_KEY_BASE}" }
+bsc = { key = "${ETHERSCAN_API_KEY_BSC}" }
+polygon = { key = "${ETHERSCAN_API_KEY_POLYGON}" }
