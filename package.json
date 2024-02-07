@@ -24,6 +24,7 @@
     "deploy:base": "bash -c 'source .env && forge script Deploy --rpc-url base --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key base'",
     "deploy:polygon": "bash -c 'source .env && forge script Deploy --rpc-url polygon --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key polygon'",
     "deploy:bsc": "bash -c 'source .env && forge script Deploy --rpc-url bsc --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key bsc'",
+    "configure:mainnet": "bash -c 'source .env && forge script ConfigureMainnet --rpc-url mainnet --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key mainnet'",
     "configure:arbitrum": "bash -c 'source .env && forge script ConfigureArbitrum --rpc-url arbitrum --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key arbitrum'",
     "configure:optimism": "bash -c 'source .env && forge script ConfigureOptimism --rpc-url optimism --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key optimism'",
     "configure:base": "bash -c 'source .env && forge script ConfigureBase --rpc-url base --broadcast --private-key $MAINNET_DEPLOYER_PK --verify --etherscan-api-key base'",
