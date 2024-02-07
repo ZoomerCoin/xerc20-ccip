@@ -13,7 +13,14 @@ abstract contract DeployInternal is Script, Config {
 
   function _deploy() internal {
     vm.startBroadcast();
-    new CCIPxERC20Bridge(routers[block.chainid], links[block.chainid], xerc20s[block.chainid], FEE_BPS);
+    new CCIPxERC20Bridge(
+      routers[block.chainid],
+      links[block.chainid],
+      xerc20s[block.chainid],
+      FEE_BPS,
+      lockboxes[block.chainid],
+      erc20s[block.chainid]
+    );
     vm.stopBroadcast();
   }
 }

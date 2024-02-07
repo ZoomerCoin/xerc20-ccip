@@ -8,6 +8,8 @@ abstract contract Config is Script {
   mapping(uint32 => uint256) public forks;
   mapping(uint256 => address) public xerc20s;
   mapping(uint256 => address) public links;
+  mapping(uint256 => address) public lockboxes;
+  mapping(uint256 => address) public erc20s;
 
   constructor() {
     // sepolia

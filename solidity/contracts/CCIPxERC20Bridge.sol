@@ -8,6 +8,7 @@ import {OwnerIsCreator} from '@chainlink/contracts-ccip/src/v0.8/shared/access/O
 import {IERC20} from
   '@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/contracts/token/ERC20/IERC20.sol';
 import {IXERC20} from 'xERC20/solidity/interfaces/IXERC20.sol';
+import {IXERC20Lockbox} from 'xERC20/solidity/interfaces/IXERC20Lockbox.sol';
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
@@ -50,6 +51,8 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
 
   IERC20 public linkToken;
   IXERC20 public xerc20;
+  IERC20 public erc20;
+  IXERC20Lockbox public lockbox;
 
   mapping(uint32 => uint64) public chainIdToChainSelector;
 
@@ -58,10 +61,19 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   /// @notice Constructor initializes the contract with the router address.
   /// @param _router The address of the router contract.
   /// @param _link The address of the link contract.
-  constructor(address _router, address _link, address _xerc20, uint256 _feeBps) CCIPReceiver(_router) {
+  constructor(
+    address _router,
+    address _link,
+    address _xerc20,
+    uint256 _feeBps,
+    address _lockbox,
+    address _erc20
+  ) CCIPReceiver(_router) {
     linkToken = IERC20(_link);
     xerc20 = IXERC20(_xerc20);
     feeBps = _feeBps;
+    lockbox = IXERC20Lockbox(_lockbox);
+    erc20 = IERC20(_erc20);
 
     // testnets
     chainIdToChainSelector[11_155_111] = 16_015_286_601_757_825_753;
@@ -139,8 +151,17 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     uint64 _destinationChainSelector = chainIdToChainSelector[_destinationChainId];
     address _receiver = bridgesByChain[_destinationChainSelector];
 
-    // transfer to this address
-    IERC20(address(xerc20)).transferFrom(msg.sender, address(this), _amount);
+    if (address(lockbox) == address(0)) {
+      // transfer to this address
+      IERC20(address(xerc20)).transferFrom(msg.sender, address(this), _amount);
+    } else {
+      // transfer erc20s here
+      erc20.transferFrom(msg.sender, address(lockbox), _amount);
+      erc20.approve(address(lockbox), _amount);
+      // deposit to lockbox
+      lockbox.deposit(_amount);
+      // xerc20 will be minted to this contract
+    }
 
     // Burn the tokens minus the fee
     uint256 _bridgedAmount = _amount - ((_amount * feeBps) / 10_000);
@@ -188,6 +209,12 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
     _lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
     (uint256 _amount, address _recipient) = abi.decode(any2EvmMessage.data, (uint256, address)); // abi-decoding of the sent text
     xerc20.mint(_recipient, _amount);
+
+    if (address(lockbox) != address(0)) {
+      lockbox.withdraw(_amount);
+      // erc20 will be transferred to this contract
+      IERC20(address(erc20)).transfer(_recipient, _amount);
+    }
 
     emit MessageReceived(
       any2EvmMessage.messageId,
