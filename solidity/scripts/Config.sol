@@ -26,6 +26,8 @@ abstract contract Config is Script {
     routers[1] = 0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D;
     links[1] = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
     xerc20s[1] = 0x425F81E2fe53256B9a7AEA91949dA2210bd049bE;
+    lockboxes[1] = 0xB3bC2AaabB4C27890dBB491550eac3843A946625;
+    erc20s[1] = 0x0D505C03d30e65f6e9b4Ef88855a47a89e4b7676;
 
     // optimism
     routers[10] = 0x3206695CaE29952f4b0c22a169725a865bc8Ce0f;
