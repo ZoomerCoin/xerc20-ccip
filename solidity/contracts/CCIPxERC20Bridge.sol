@@ -156,7 +156,7 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
       IERC20(address(xerc20)).transferFrom(msg.sender, address(this), _amount);
     } else {
       // transfer erc20s here
-      erc20.transferFrom(msg.sender, address(lockbox), _amount);
+      erc20.transferFrom(msg.sender, address(this), _amount);
       erc20.approve(address(lockbox), _amount);
       // deposit to lockbox
       lockbox.deposit(_amount);
