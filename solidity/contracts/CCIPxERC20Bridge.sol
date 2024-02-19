@@ -208,11 +208,17 @@ contract CCIPxERC20Bridge is CCIPReceiver, OwnerIsCreator {
   {
     _lastReceivedMessageId = any2EvmMessage.messageId; // fetch the messageId
     (uint256 _amount, address _recipient) = abi.decode(any2EvmMessage.data, (uint256, address)); // abi-decoding of the sent text
-    xerc20.mint(_recipient, _amount);
 
-    if (address(lockbox) != address(0)) {
+    if (address(lockbox) == address(0)) {
+      // no lockbox, mint directly to recipient
+      xerc20.mint(_recipient, _amount);
+    } else {
+      // withdraw from lockbox
+      // mint to this contract
+      xerc20.mint(address(this), _amount);
+      // withdraw from lockbox, erc20 will be transferred to this contract
       lockbox.withdraw(_amount);
-      // erc20 will be transferred to this contract
+      // transfer erc20s to recipient
       IERC20(address(erc20)).transfer(_recipient, _amount);
     }
 
