@@ -30,9 +30,9 @@ abstract contract Config is Script {
     routers[1] = 0x80226fc0Ee2b096224EeAc085Bb9a8cba1146f7D;
     links[1] = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
     xerc20s[1] = 0x425F81E2fe53256B9a7AEA91949dA2210bd049bE;
-    lockboxes[1] = 0xB3bC2AaabB4C27890dBB491550eac3843A946625;
+    lockboxes[1] = 0xBf16C4F1c3cff5E2C2CB2591456E891aad7FFC87;
     erc20s[1] = 0x0D505C03d30e65f6e9b4Ef88855a47a89e4b7676;
-    bridges[1] = CCIPxERC20Bridge(payable(0x2339e8e77A7FD6455fB7374bFEf8BA0E4C8C2308)); // mainnet
+    bridges[1] = CCIPxERC20Bridge(payable(0x5B39b483DDa8bae818989F6bCC9c18E99d103478)); // mainnet
 
     // optimism
     routers[10] = 0x3206695CaE29952f4b0c22a169725a865bc8Ce0f;
@@ -66,6 +66,6 @@ abstract contract Config is Script {
     routers[8453] = 0x881e3A65B4d4a04dD529061dd0071cf975F58bCD;
     links[8453] = 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196;
     xerc20s[8453] = 0xD1dB4851bcF5B41442cAA32025Ce0Afe6B8EabC2;
-    bridges[8453] = CCIPxERC20Bridge(payable(0x083178fBB5d6dd6521fe778BcfC32BF898678fAe)); // base
+    bridges[8453] = CCIPxERC20Bridge(payable(0xF93Aba36FfC4D357dD616679045C7d1bFA5e5602)); // base
   }
 }
